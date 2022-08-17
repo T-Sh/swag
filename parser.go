@@ -148,6 +148,8 @@ type Parser struct {
 	// excludes excludes dirs and files in SearchDir
 	excludes map[string]struct{}
 
+	excludeRouters []string
+
 	// debugging output goes here
 	debug Debugger
 
@@ -212,6 +214,7 @@ func New(options ...func(*Parser)) *Parser {
 		existSchemaNames:   make(map[string]*Schema),
 		toBeRenamedSchemas: make(map[string]string),
 		excludes:           make(map[string]struct{}),
+		excludeRouters:     []string{},
 		fieldParserFactory: newTagBaseFieldParser,
 		Overrides:          make(map[string]string),
 	}
@@ -245,6 +248,18 @@ func SetExcludedDirsAndFiles(excludes string) func(*Parser) {
 			if f != "" {
 				f = filepath.Clean(f)
 				p.excludes[f] = struct{}{}
+			}
+		}
+	}
+}
+
+func SetExcludedRouters(excludes string) func(*Parser) {
+	return func(p *Parser) {
+		for _, f := range strings.Split(excludes, ",") {
+			f = strings.TrimSpace(f)
+			if f != "" {
+				f = filepath.Clean(f)
+				p.excludeRouters = append(p.excludeRouters, f)
 			}
 		}
 	}
@@ -824,6 +839,12 @@ func refRouteMethodOp(item *spec.PathItem, method string) (op **spec.Operation) 
 
 func processRouterOperation(parser *Parser, operation *Operation) error {
 	for _, routeProperties := range operation.RouterProperties {
+		for _, prefix := range parser.excludeRouters {
+			if strings.HasPrefix(routeProperties.Path, prefix) {
+				return nil
+			}
+		}
+
 		var (
 			pathItem spec.PathItem
 			ok       bool
