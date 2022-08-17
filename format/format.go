@@ -17,6 +17,8 @@ type Format struct {
 
 	// exclude exclude dirs and files in SearchDir
 	exclude map[string]bool
+
+	excludeRoutersWithPrefix map[string]bool
 }
 
 // New creates a new Format instance
